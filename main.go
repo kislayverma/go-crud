@@ -2,7 +2,7 @@
 package main
 
 import (
-    "encoding/json"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -11,6 +11,8 @@ import (
 
 	"github.com/gorilla/mux"
 )
+
+var db IEventDao
 
 func homeLink(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Welcome home!")
@@ -23,9 +25,10 @@ func createEvent(w http.ResponseWriter, r *http.Request) {
 		log.Println("Kindly enter data with the event title and description only in order to update")
 	}
 
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	json.Unmarshal(reqBody, &newEvent)
 	log.Printf("Incoming event %v", newEvent)
-	newEvent = insert(newEvent)
+	newEvent = getDao().insert(newEvent)
 
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(newEvent)
@@ -33,12 +36,13 @@ func createEvent(w http.ResponseWriter, r *http.Request) {
 
 func getOneEvent(w http.ResponseWriter, r *http.Request) {
 	eventID, err := strconv.ParseInt(mux.Vars(r)["id"], 10, 64)
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 
 	if err != nil {
 		log.Println("Failed to parse the id")
 		w.WriteHeader(http.StatusBadRequest)
 	} else {
-		var event = findById(eventID)
+		var event = getDao().findById(eventID)
 		if event.ID == 0 {
 			w.WriteHeader(http.StatusNotFound)
 		} else {
@@ -48,11 +52,13 @@ func getOneEvent(w http.ResponseWriter, r *http.Request) {
 }
 
 func getAllEvents(w http.ResponseWriter, r *http.Request) {
-	json.NewEncoder(w).Encode(getAll())
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	json.NewEncoder(w).Encode(getDao().getAll())
 }
 
 func updateEvent(w http.ResponseWriter, r *http.Request) {
 	eventId, err := strconv.ParseInt(mux.Vars(r)["id"], 10, 64)
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 
 	if err != nil {
 		log.Println("Failed to parse the id")
@@ -66,13 +72,13 @@ func updateEvent(w http.ResponseWriter, r *http.Request) {
 		}
 		json.Unmarshal(reqBody, &updatedEvent)
 
-		var existingEvent = findById(eventId)
+		var existingEvent = getDao().findById(eventId)
 		if existingEvent.ID == 0 {
 			w.WriteHeader(http.StatusNotFound)
 		} else {
 			existingEvent.Title = updatedEvent.Title
 			existingEvent.Description = updatedEvent.Description
-			update(eventId, existingEvent)
+			getDao().update(eventId, existingEvent)
 			w.WriteHeader(http.StatusOK)
 			json.NewEncoder(w).Encode(existingEvent)
 		}
@@ -81,24 +87,32 @@ func updateEvent(w http.ResponseWriter, r *http.Request) {
 
 func deleteEvent(w http.ResponseWriter, r *http.Request) {
 	eventId, err := strconv.ParseInt(mux.Vars(r)["id"], 10, 64)
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 
 	if err != nil {
 		log.Println("Failed to parse the id")
 		w.WriteHeader(http.StatusBadRequest)
 	} else {
-		var existingEvent = findById(eventId)
+		var existingEvent = getDao().findById(eventId)
 		if existingEvent.ID == 0 {
 			w.WriteHeader(http.StatusNotFound)
 		} else {
-			deleteById(eventId)
+			getDao().deleteById(eventId)
 			w.WriteHeader(http.StatusOK)
 			json.NewEncoder(w).Encode(existingEvent)
 		}
 	}
 }
 
+func getDao() IEventDao {
+	return db
+}
+
 func main() {
-	initDb()
+	// Initialize the database access layer
+	db = EventInMemoryDao{make(map [int64]Event), 1}
+	db.initDb()
+
 	router := mux.NewRouter().StrictSlash(true)
 	router.HandleFunc("/", homeLink)
 	router.HandleFunc("/event", createEvent).Methods("POST")
