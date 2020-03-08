@@ -19,20 +19,16 @@ func (dao EventInMemoryDao) findById(id int64) Event {
 	return dao.events[id]
 }
 
-func (dao EventInMemoryDao) insert(event Event) Event {
+func (dao EventInMemoryDao) insert(event Event) {
 	var newEventForDb = Event{int64(len(dao.events)) + 1, event.Title, event.Description}
 	dao.events[newEventForDb.ID] = newEventForDb
 	log.Printf("Inserted event in DB : %v", dao.events[newEventForDb.ID])
 	log.Printf("Record count : %d", len(dao.events));
-
-	return newEventForDb
 }
 
-func (dao EventInMemoryDao) update(id int64, event Event) Event {
+func (dao EventInMemoryDao) update(id int64, event Event) {
 	dao.events[id] = event
 	log.Printf("Updated event in DB : %v", dao.events[event.ID])
-
-	return event
 }
 
 func (dao EventInMemoryDao) getAll() []Event {
@@ -46,8 +42,6 @@ func (dao EventInMemoryDao) getAll() []Event {
 	return values
 }
 
-func (dao EventInMemoryDao) deleteById(id int64) Event {
-	var deletedEvent = dao.events[id]
+func (dao EventInMemoryDao) deleteById(id int64) {
 	delete(dao.events, id)
-	return deletedEvent
 }

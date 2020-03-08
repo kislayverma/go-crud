@@ -1,61 +1,95 @@
+// Code credit - https://medium.com/@hugo.bjarred/mysql-and-golang-ea0d620574d2
+// Code credit - https://medium.com/@hugo.bjarred/rest-api-with-golang-mux-mysql-c5915347fa5b
 package main
 
 import (
-	"log"
 	"database/sql"
-	_"github.com/go-sql-driver/mysql"
+	_ "github.com/go-sql-driver/mysql"
+	"log"
 )
 
 type EventMySqlDao struct {
-	events map[int64]Event
-	db sql.DB
-	eventIdCount int64
+	db *sql.DB
 }
 
 func (dao EventMySqlDao) initDb() {
-	db, err := sql.Open("mysql", "root:@/<database-name>")
-	if err != nil {
-		panic(err.Error())
-	}
-	defer db.Close()
+	// Do nothing
 }
 
 func (dao EventMySqlDao) findById(id int64) Event {
-	log.Printf("returning event from DB : %v", dao.events[id])
+	log.Println("Searching DB for event id ", id)
+	data, err := dao.db.Query("SELECT id, title, description FROM event WHERE id = ?", id)
+	if err != nil {
+		log.Panic("Error running query : %v", err.Error())
+	}
 
-	return dao.events[id]
-}
-
-func (dao EventMySqlDao) insert(event Event) Event {
-	event.ID = dao.eventIdCount
-	dao.eventIdCount++
-	dao.events[event.ID] = event
-	log.Printf("Inserted event in DB : %v", dao.events[event.ID])
-	log.Printf("Record count : %d", len(dao.events));
-
-	return event
-}
-
-func (dao EventMySqlDao) update(id int64, event Event) Event {
-	dao.events[id] = event
-	log.Printf("Updated event in DB : %v", dao.events[event.ID])
+	var event Event
+	for data.Next() {
+		err := data.Scan(&event.ID, &event.Title, &event.Description)
+		if err != nil {
+			log.Panic(err.Error())
+		}
+	}
+	defer data.Close()
 
 	return event
+}
+
+func (dao EventMySqlDao) insert(event Event) {
+	stmt, err := dao.db.Prepare("INSERT INTO event (title,description) VALUES (?, ?)")
+	if err != nil {
+		log.Panic("Error preparing query : %v", err.Error())
+	}
+	_, runErr := stmt.Exec(event.Title, event.Description)
+	if runErr != nil {
+		log.Panic("Error running query : %v", err.Error())
+	}
+
+	log.Printf("Inserted event in DB")
+}
+
+func (dao EventMySqlDao) update(id int64, event Event) {
+	stmt, err := dao.db.Prepare("UPDATE event SET title = ?, description=? WHERE id = ?")
+	if err != nil {
+		log.Panic("Error preparing query : %v", err.Error())
+	}
+	_, runErr := stmt.Exec(event.Title, event.Description, id)
+	if runErr != nil {
+		log.Panic("Error running query : %v", err.Error())
+	}
+
+	log.Printf("Updated event in DB")
 }
 
 func (dao EventMySqlDao) getAll() []Event {
-	var values = make([]Event, len(dao.events))
-	idx := 0
-	for _, value := range dao.events {
-		values[idx] = value
-		idx++
+	data, err := dao.db.Query("SELECT id, title, description FROM event")
+	if err != nil {
+		log.Panic("Error running query : %v", err.Error())
 	}
 
-	return values
+	var events []Event
+	for data.Next() {
+		var event Event
+		err := data.Scan(&event.ID, &event.Title, &event.Description)
+		if err != nil {
+			panic(err.Error())
+		}
+		events = append(events, event)
+	}
+	defer data.Close()
+
+	return events
 }
 
-func (dao EventMySqlDao) deleteById(id int64) Event {
-	var deletedEvent = dao.events[id]
-	delete(dao.events, id)
-	return deletedEvent
+func (dao EventMySqlDao) deleteById(id int64) {
+	stmt, err := dao.db.Prepare("DELETE FROM event where id = ?")
+	if err != nil {
+		log.Panic("Error preparing query : %v", err.Error())
+	}
+	_, runErr := stmt.Exec(id)
+	if runErr != nil {
+		log.Panic("Error running query : %v", err.Error())
+	}
+
+	log.Printf("Deleted event from DB")
 }

@@ -2,6 +2,7 @@
 package main
 
 import (
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -28,10 +29,9 @@ func createEvent(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	json.Unmarshal(reqBody, &newEvent)
 	log.Printf("Incoming event %v", newEvent)
-	newEvent = getDao().insert(newEvent)
+	getDao().insert(newEvent)
 
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(newEvent)
 }
 
 func getOneEvent(w http.ResponseWriter, r *http.Request) {
@@ -80,7 +80,6 @@ func updateEvent(w http.ResponseWriter, r *http.Request) {
 			existingEvent.Description = updatedEvent.Description
 			getDao().update(eventId, existingEvent)
 			w.WriteHeader(http.StatusOK)
-			json.NewEncoder(w).Encode(existingEvent)
 		}
 	}
 }
@@ -93,13 +92,13 @@ func deleteEvent(w http.ResponseWriter, r *http.Request) {
 		log.Println("Failed to parse the id")
 		w.WriteHeader(http.StatusBadRequest)
 	} else {
+		log.Printf("Trying to delete event with id %d", eventId)
 		var existingEvent = getDao().findById(eventId)
 		if existingEvent.ID == 0 {
 			w.WriteHeader(http.StatusNotFound)
 		} else {
 			getDao().deleteById(eventId)
 			w.WriteHeader(http.StatusOK)
-			json.NewEncoder(w).Encode(existingEvent)
 		}
 	}
 }
@@ -110,8 +109,14 @@ func getDao() IEventDao {
 
 func main() {
 	// Initialize the database access layer
-	db = EventInMemoryDao{make(map [int64]Event), 1}
+	// Not the best : conn details leaking into main program - need to enable configs in Mysql dao
+	dbConn, err := sql.Open("mysql", "root:@/gocrud")
+	if err != nil {
+		panic(err.Error())
+	}
+	db = EventMySqlDao{dbConn}
 	db.initDb()
+	defer dbConn.Close()
 
 	router := mux.NewRouter().StrictSlash(true)
 	router.HandleFunc("/", homeLink)
