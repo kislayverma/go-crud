@@ -1,0 +1,118 @@
+{
+  "swagger": "2.0",
+  "info": {},
+  "paths": {
+    "/": {
+      "get": {
+        "description": "Returns a simple Hello message",
+        "consumes": [
+          "text/plain"
+        ],
+        "produces": [
+          "text/plain"
+        ],
+        "tags": [
+          "Hello"
+        ],
+        "operationId": "Hello",
+        "responses": {
+          "200": {
+            "description": "The hello message"
+          }
+        }
+      }
+    },
+    "/event": {
+      "get": {
+        "description": "If event are found array of events will be returned, else an empty JSON array will be returned.",
+        "tags": [
+          "Event"
+        ],
+        "summary": "Return all the events from the store",
+        "operationId": "getAllEvents",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/accountRes"
+          }
+        }
+      }
+    },
+    "/event/": {
+      "post": {
+        "description": "Creates an event with the give title and description and assign a new id to it",
+        "tags": [
+          "Event"
+        ],
+        "summary": "Creates an event with the give title and description and assign a new id to it",
+        "operationId": "createEvent",
+        "parameters": [
+          {
+            "$ref": "#/responses/event",
+            "type": "event",
+            "description": "title and description of the event",
+            "name": "event",
+            "in": "body",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/event"
+          },
+          "400": {
+            "$ref": "#/responses/event"
+          },
+          "404": {
+            "$ref": "#/responses/notFoundReq"
+          }
+        }
+      }
+    },
+    "/event/{id}": {
+      "get": {
+        "description": "If the event is found, it will be returned else Error Not Found (404) will be returned.",
+        "tags": [
+          "Event"
+        ],
+        "summary": "Return the event identified by the id.",
+        "operationId": "getEvent",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "id of the event",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/event"
+          },
+          "400": {
+            "$ref": "#/responses/event"
+          },
+          "404": {
+            "$ref": "#/responses/notFoundReq"
+          }
+        }
+      }
+    }
+  },
+  "responses": {
+    "event": {
+      "headers": {
+        "description": {
+          "type": "string"
+        },
+        "id": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "title": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}
