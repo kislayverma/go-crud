@@ -1,4 +1,4 @@
-package main
+package dao
 
 // swagger:response event
 // Event Json request payload is as follows,

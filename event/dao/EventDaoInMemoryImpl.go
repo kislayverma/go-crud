@@ -1,37 +1,36 @@
-package main
+package dao
 
 import (
 	"log"
 )
 
 type EventInMemoryDao struct {
-	events map[int64]Event
+	events map[int64] Event
 	eventIdCount int64
 }
 
-func (dao EventInMemoryDao) initDb() {
+func (dao EventInMemoryDao) InitDb() {
 	// do nothing
 }
 
-func (dao EventInMemoryDao) findById(id int64) Event {
+func (dao EventInMemoryDao) FindById(id int64) Event {
 	log.Printf("returning event from DB : %v", dao.events[id])
-
 	return dao.events[id]
 }
 
-func (dao EventInMemoryDao) insert(event Event) {
+func (dao EventInMemoryDao) Insert(event Event) {
 	var newEventForDb = Event{int64(len(dao.events)) + 1, event.Title, event.Description}
 	dao.events[newEventForDb.ID] = newEventForDb
 	log.Printf("Inserted event in DB : %v", dao.events[newEventForDb.ID])
 	log.Printf("Record count : %d", len(dao.events));
 }
 
-func (dao EventInMemoryDao) update(id int64, event Event) {
+func (dao EventInMemoryDao) Update(id int64, event Event) {
 	dao.events[id] = event
 	log.Printf("Updated event in DB : %v", dao.events[event.ID])
 }
 
-func (dao EventInMemoryDao) getAll() []Event {
+func (dao EventInMemoryDao) GetAll() []Event {
 	var values = make([]Event, len(dao.events))
 	idx := 0
 	for _, value := range dao.events {
@@ -42,6 +41,6 @@ func (dao EventInMemoryDao) getAll() []Event {
 	return values
 }
 
-func (dao EventInMemoryDao) deleteById(id int64) {
+func (dao EventInMemoryDao) DeleteById(id int64) {
 	delete(dao.events, id)
 }

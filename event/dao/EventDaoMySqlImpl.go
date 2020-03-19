@@ -1,6 +1,6 @@
 // Code credit - https://medium.com/@hugo.bjarred/mysql-and-golang-ea0d620574d2
 // Code credit - https://medium.com/@hugo.bjarred/rest-api-with-golang-mux-mysql-c5915347fa5b
-package main
+package dao
 
 import (
 	"database/sql"
@@ -12,11 +12,11 @@ type EventMySqlDao struct {
 	db *sql.DB
 }
 
-func (dao EventMySqlDao) initDb() {
+func (dao EventMySqlDao) InitDb() {
 	// Do nothing
 }
 
-func (dao EventMySqlDao) findById(id int64) Event {
+func (dao EventMySqlDao) FindById(id int64) Event {
 	log.Println("Searching DB for event id ", id)
 	data, err := dao.db.Query("SELECT id, title, description FROM event WHERE id = ?", id)
 	if err != nil {
@@ -34,7 +34,7 @@ func (dao EventMySqlDao) findById(id int64) Event {
 	return event
 }
 
-func (dao EventMySqlDao) insert(event Event) {
+func (dao EventMySqlDao) Insert(event Event) {
 	stmt, err := dao.db.Prepare("INSERT INTO event (title,description) VALUES (?, ?)")
 	if err != nil {
 		log.Panic("Error preparing query : %v", err.Error())
@@ -47,7 +47,7 @@ func (dao EventMySqlDao) insert(event Event) {
 	log.Printf("Inserted event in DB")
 }
 
-func (dao EventMySqlDao) update(id int64, event Event) {
+func (dao EventMySqlDao) Update(id int64, event Event) {
 	stmt, err := dao.db.Prepare("UPDATE event SET title = ?, description=? WHERE id = ?")
 	if err != nil {
 		log.Panic("Error preparing query : %v", err.Error())
@@ -60,7 +60,7 @@ func (dao EventMySqlDao) update(id int64, event Event) {
 	log.Printf("Updated event in DB")
 }
 
-func (dao EventMySqlDao) getAll() []Event {
+func (dao EventMySqlDao) GetAll() []Event {
 	data, err := dao.db.Query("SELECT id, title, description FROM event")
 	if err != nil {
 		log.Panic("Error running query : %v", err.Error())
@@ -79,7 +79,7 @@ func (dao EventMySqlDao) getAll() []Event {
 	return events
 }
 
-func (dao EventMySqlDao) deleteById(id int64) {
+func (dao EventMySqlDao) DeleteById(id int64) {
 	stmt, err := dao.db.Prepare("DELETE FROM event where id = ?")
 	if err != nil {
 		log.Panic("Error preparing query : %v", err.Error())
