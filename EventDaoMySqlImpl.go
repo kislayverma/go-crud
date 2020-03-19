@@ -30,7 +30,6 @@ func (dao EventMySqlDao) findById(id int64) Event {
 			log.Panic(err.Error())
 		}
 	}
-	defer data.Close()
 
 	return event
 }
@@ -76,7 +75,6 @@ func (dao EventMySqlDao) getAll() []Event {
 		}
 		events = append(events, event)
 	}
-	defer data.Close()
 
 	return events
 }

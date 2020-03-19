@@ -21,11 +21,11 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"github.com/jinzhu/gorm"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"strconv"
-
 	"github.com/gorilla/mux"
 )
 
@@ -186,13 +186,20 @@ func main() {
 	// Not the best : conn details leaking into main program - need to enable configs in Mysql dao
 	// Swagger setup creadit :
 	// https://medium.com/@supun.muthutantrige/lets-go-everything-you-need-to-know-about-creating-a-restful-api-in-go-part-iv-52666c5221d4
-	dbConn, err := sql.Open("mysql", "root:@/gocrud")
+	dbConn, err := gorm.Open("mysql", "root:@(localhost)/gocrud")
 	if err != nil {
+		log.Panic(err.Error())
 		panic(err.Error())
 	}
-	db = EventMySqlDao{dbConn}
+	dbConn.SingularTable(true)
+
+	db = EventMySqlOrmDao{dbConn}
 	db.initDb()
 	defer dbConn.Close()
+
+	// TODO - Make this work
+	// This is what I want, but the connection gets closed when I do it in the build*Dao methods below.
+	// db = buildMySqlOrmDao()
 
 	router := mux.NewRouter().StrictSlash(true)
 	router.HandleFunc("/", homeLink)
@@ -203,4 +210,31 @@ func main() {
 	router.HandleFunc("/event/{id}", updateEvent).Methods("PATCH")
 	router.HandleFunc("/event/{id}", deleteEvent).Methods("DELETE")
 	log.Fatal(http.ListenAndServe(":8080", router))
+}
+
+func buildMySqlDao() IEventDao {
+	dbConn, err := sql.Open("mysql", "root:@/gocrud")
+	if err != nil {
+		panic(err.Error())
+	}
+	db = EventMySqlDao{dbConn}
+	db.initDb()
+
+	defer dbConn.Close()
+
+	return db
+}
+
+func buildMySqlOrmDao() IEventDao {
+	dbConn, err := gorm.Open("mysql", "root:@(localhost)/gocrud")
+
+	if err != nil {
+		panic(err.Error())
+	}
+	db = EventMySqlOrmDao{dbConn}
+	db.initDb()
+
+	defer dbConn.Close()
+
+	return db
 }
