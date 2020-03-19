@@ -22,6 +22,7 @@ func (svc EventService) RegisterRoutes() {
 	subRouter.HandleFunc("/{id}", svc.getOneEvent).Methods("GET")
 	subRouter.HandleFunc("/{id}", svc.updateEvent).Methods("PATCH")
 	subRouter.HandleFunc("/{id}", svc.deleteEvent).Methods("DELETE")
+	subRouter.HandleFunc("/validate/{id}", svc.validateEventExists).Methods("GET")
 }
 
 func (svc EventService) getOneEvent(w http.ResponseWriter, r *http.Request) {
@@ -58,6 +59,19 @@ func (svc EventService) getOneEvent(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (svc EventService) getAllEvents(w http.ResponseWriter, r *http.Request) {
+	// swagger:operation GET /event Event getAllEvents
+	// ---
+	// summary: Return all the events from the store
+	// description: If event are found array of events will be returned, else an empty JSON array will be returned.
+	// parameters:
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/accountRes"
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	json.NewEncoder(w).Encode(svc.Db.GetAll())
+}
+
 func (svc EventService) createEvent(w http.ResponseWriter, r *http.Request) {
 	// swagger:operation POST /event/ Event createEvent
 	// ---
@@ -89,19 +103,6 @@ func (svc EventService) createEvent(w http.ResponseWriter, r *http.Request) {
 	svc.Db.Insert(newEvent)
 
 	w.WriteHeader(http.StatusCreated)
-}
-
-func (svc EventService) getAllEvents(w http.ResponseWriter, r *http.Request) {
-	// swagger:operation GET /event Event getAllEvents
-	// ---
-	// summary: Return all the events from the store
-	// description: If event are found array of events will be returned, else an empty JSON array will be returned.
-	// parameters:
-	// responses:
-	//   "200":
-	//     "$ref": "#/responses/accountRes"
-	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	json.NewEncoder(w).Encode(svc.Db.GetAll())
 }
 
 func (svc EventService) updateEvent(w http.ResponseWriter, r *http.Request) {
@@ -147,6 +148,25 @@ func (svc EventService) deleteEvent(w http.ResponseWriter, r *http.Request) {
 		} else {
 			svc.Db.DeleteById(eventId)
 			w.WriteHeader(http.StatusOK)
+		}
+	}
+}
+
+func (svc EventService) validateEventExists(w http.ResponseWriter, r *http.Request) {
+	eventId, err := strconv.ParseInt(mux.Vars(r)["id"], 10, 64)
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+
+	if err != nil {
+		log.Println("Failed to parse the id")
+		w.WriteHeader(http.StatusBadRequest)
+	} else {
+		responseChannel := make(chan bool)
+		go getEvent(eventId, responseChannel)
+		eventFound := <- responseChannel
+		if eventFound {
+			go logResponse("Event With id " + strconv.FormatInt(eventId, 10) + " was found")
+		} else {
+			go logResponse("Event With id " + strconv.FormatInt(eventId, 10) + " was not found")
 		}
 	}
 }
