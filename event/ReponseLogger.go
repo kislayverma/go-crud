@@ -1,7 +1,10 @@
 package event
 
-import "log"
+import (
+	"github.com/kislayverma/go-crud/http-utils"
+	"log"
+)
 
-func logResponse(response string) {
-	log.Print("Reponse in ResponseLogger ", response)
+func logResponse(reqCtx http_utils.RequestContext, response string) {
+	log.Print(reqCtx.RequestId, " : Response in ResponseLogger ", response)
 }

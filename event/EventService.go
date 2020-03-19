@@ -2,12 +2,13 @@ package event
 
 import (
 	"encoding/json"
+	"github.com/gorilla/mux"
 	"github.com/kislayverma/go-crud/event/dao"
+	"github.com/kislayverma/go-crud/http-utils"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"strconv"
-	"github.com/gorilla/mux"
 )
 
 type EventService struct {
@@ -156,17 +157,20 @@ func (svc EventService) validateEventExists(w http.ResponseWriter, r *http.Reque
 	eventId, err := strconv.ParseInt(mux.Vars(r)["id"], 10, 64)
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 
+	reqContext := http_utils.GetRequestContext(r, r.Header[http_utils.REQUEST_ID_HEADER_NAME][0])
+
 	if err != nil {
-		log.Println("Failed to parse the id")
+		log.Println(reqContext.RequestId, "Failed to parse the id")
 		w.WriteHeader(http.StatusBadRequest)
 	} else {
 		responseChannel := make(chan bool)
-		go getEvent(eventId, responseChannel)
+		go getEvent(reqContext, eventId, responseChannel)
 		eventFound := <- responseChannel
+		w.WriteHeader(http.StatusOK)
 		if eventFound {
-			go logResponse("Event With id " + strconv.FormatInt(eventId, 10) + " was found")
+			go logResponse(reqContext, "Event With id " + strconv.FormatInt(eventId, 10) + " was found")
 		} else {
-			go logResponse("Event With id " + strconv.FormatInt(eventId, 10) + " was not found")
+			go logResponse(reqContext,"Event With id " + strconv.FormatInt(eventId, 10) + " was not found")
 		}
 	}
 }
